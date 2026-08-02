@@ -22,8 +22,11 @@
     #controls{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
     #phraseBoard{margin:18px 0}
     .phrase-group{margin:0 0 18px}
-    .phrase-group h2{margin:0 0 8px;font-size:1rem}
+    .category-button{width:100%;min-height:58px;padding:10px 16px;border:2px solid #914747;border-radius:14px;background:#8b3838;color:#fff;text-align:left;font-size:1.1rem;font-weight:750}
+    .category-button::after{content:'+';float:right;font-size:1.35rem}
+    .category-button[aria-expanded="true"]::after{content:'−'}
     .phrase-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+    .phrase-grid[hidden]{display:none}
     .phrase-button{min-height:58px;padding:10px;border:1px solid #8b4444;border-radius:13px;background:#fffafa;color:#642525;font-size:1rem;font-weight:650}
     [hidden]{display:none!important}
     .control{min-height:58px;border:2px solid var(--line);border-radius:14px;background:#fffafa;color:#642525;font-size:clamp(1rem,2.2vw,1.25rem);font-weight:650}
@@ -97,6 +100,7 @@
     const input=document.querySelector('#word');
     const letters=document.querySelector('#letters');
     const phraseBoard=document.querySelector('#phraseBoard');
+    const controls=document.querySelector('#controls');
     const spellView=document.querySelector('#spellView');
     const phraseView=document.querySelector('#phraseView');
     const readButton=document.querySelector('#read');
@@ -181,8 +185,14 @@
     }
     for(const [group,items] of Object.entries(phraseGroups)){
       const section=document.createElement('section');section.className='phrase-group';
-      const heading=document.createElement('h2');heading.textContent=group;section.appendChild(heading);
-      const grid=document.createElement('div');grid.className='phrase-grid';
+      const heading=document.createElement('button');heading.type='button';heading.className='category-button';heading.textContent=group;heading.setAttribute('aria-expanded','false');section.appendChild(heading);
+      const grid=document.createElement('div');grid.className='phrase-grid';grid.hidden=true;
+      heading.addEventListener('click',()=>{
+        const opening=grid.hidden;
+        phraseBoard.querySelectorAll('.phrase-grid').forEach(item=>item.hidden=true);
+        phraseBoard.querySelectorAll('.category-button').forEach(item=>item.setAttribute('aria-expanded','false'));
+        grid.hidden=!opening;heading.setAttribute('aria-expanded',String(opening));
+      });
       for(const phrase of items){
         const button=document.createElement('button');button.type='button';button.className='phrase-button';button.textContent=phrase;
         button.addEventListener('click',()=>{
@@ -191,6 +201,7 @@
             changed();
           }
           input.blur();
+          speak(normalize(phrase));
         });grid.appendChild(button);
       }
       section.appendChild(grid);phraseBoard.appendChild(section);
@@ -198,9 +209,10 @@
     function showBoard(board){
       const showPhrases=board==='phrases';
       letters.hidden=showPhrases;phraseBoard.hidden=!showPhrases;
+      controls.hidden=showPhrases;
       spellView.setAttribute('aria-selected',String(!showPhrases));
       phraseView.setAttribute('aria-selected',String(showPhrases));
-      readButton.textContent=showPhrases?'Read Phrase':'Read Word';
+      readButton.textContent='Read Word';
       input.value='';input.blur();changed();
     }
     spellView.addEventListener('click',()=>showBoard('spell'));
