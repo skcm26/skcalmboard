@@ -106,6 +106,10 @@
     const readButton=document.querySelector('#read');
     let lastRead='';
     let activeUtterance=null;
+    let phraseLockedUntil=0;
+    let lastPhraseSpoken='';
+    let phraseUnlockTimer=null;
+    const PHRASE_PAUSE_MS=5000;
     const pendingLookups=new Set();
     let rememberedWords=[];
     try{rememberedWords=JSON.parse(localStorage.getItem('satvikDictionaryWords')||'[]')}catch{}
@@ -196,12 +200,24 @@
       for(const phrase of items){
         const button=document.createElement('button');button.type='button';button.className='phrase-button';button.textContent=phrase;
         button.addEventListener('click',()=>{
+          const selectedPhrase=normalize(phrase);
+          if(Date.now()<phraseLockedUntil) return;
+          if(selectedPhrase===lastPhraseSpoken) return;
+          phraseLockedUntil=Date.now()+PHRASE_PAUSE_MS;
+          lastPhraseSpoken=selectedPhrase;
+          phraseBoard.style.pointerEvents='none';
+          phraseBoard.setAttribute('aria-disabled','true');
+          clearTimeout(phraseUnlockTimer);
+          phraseUnlockTimer=setTimeout(()=>{
+            phraseBoard.style.pointerEvents='';
+            phraseBoard.removeAttribute('aria-disabled');
+          },PHRASE_PAUSE_MS);
           if(normalize(input.value)!==normalize(phrase)){
             input.value=phrase;
             changed();
           }
           input.blur();
-          speak(normalize(phrase));
+          speak(selectedPhrase);
         });grid.appendChild(button);
       }
       section.appendChild(grid);phraseBoard.appendChild(section);
